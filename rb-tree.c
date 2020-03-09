@@ -3,7 +3,7 @@
 #define BAD_ARGS -1
 #define ERROR -2
 
-RB_tree* tree_create()
+RB_tree* tree_ctor()
 {
     RB_tree* tree = (*RB_tree) malloc(sizeof(struct RB_tree));
     if (tree == NULL)
@@ -11,7 +11,7 @@ RB_tree* tree_create()
 
     tree->num_nodes = 0;
 
-    tree->nil = node_ctor();
+    tree->nil = node_create();
     if (tree->nil == NULL)
     {
         free(tree);
@@ -24,7 +24,7 @@ RB_tree* tree_create()
     return tree;
 }
 
-static RB_node* node_ctor()
+static RB_node* node_create()
 {
     RB_node* node = (*RB_node) malloc(sizeof(struct RB_node));
     if (node == NULL)
@@ -38,6 +38,15 @@ static RB_node* node_ctor()
     node->key = Poison_key;
 
     return node;
+}
+
+RB_node* node_ctor(int node_key)
+{
+    BR_node* new_node = node_create();
+    if (new_node != NULL)
+        new_node->key = node_key;
+
+    return new_node;
 }
 
 int tree_dump(FILE* out, RB_tree* tree)

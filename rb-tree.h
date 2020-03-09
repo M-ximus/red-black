@@ -30,6 +30,7 @@ struct RB_tree{
 };
 
 int tree_dump(FILE* out, RB_tree* tree);
-RB_tree* tree_create();
+RB_tree* tree_ctor();
+RB_node* node_ctor(int node_key);
 
 #endif // RB_TREE_LIBRARY_H
