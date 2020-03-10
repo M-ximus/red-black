@@ -22,12 +22,10 @@ rb-tree.gcda: cov.out
 cov.out: unittests.c rb-tree.c
 	$(CC) $(GCOV_FLAGS) -o cov.out $^
 
-dot: tree.png
-
-tree.png: debug.dot
+%.png: %.dot
 	dot $(DOT_FLAGS) -o $@ $<
 
-debug.dot: unittest.out
+%.dot: unittest.out
 	./unittest.out
 
 -include *.d
