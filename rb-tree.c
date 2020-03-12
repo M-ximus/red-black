@@ -4,6 +4,7 @@
 #define ERROR -2
 #define BAD_TREE_CONDITION -3
 #define WRONG_OPERATION -4
+#define E_TOO_MUCH_ELEM -5
 
 static RB_node* node_create();
 RB_tree* tree_ctor();
@@ -14,6 +15,10 @@ static int left_rotate(RB_tree* tree, RB_node* node);
 static int right_rotate(RB_tree* tree, RB_node* node);
 int tree_dump(FILE* out, RB_tree* tree);
 static int node_dump(FILE* out, RB_node* node, RB_tree* tree, size_t* counter);
+int RB_delete(RB_tree* tree, RB_node* node);
+static int delete_fixup();
+int node_dtor(RB_node* node);
+int tree_dtor(RB_tree* tree);
 
 
 
@@ -235,12 +240,289 @@ static int right_rotate(RB_tree* tree, RB_node* node)
     return 0;
 }
 
+int RB_delete(RB_tree* tree, RB_node* node)
+{
+    if (tree == NULL || node == NULL)
+        return BAD_ARGS;
+
+    RB_node* nil = tree->nil;
+    RB_node* old = node;
+    int old_orig_color = old->color;
+    RB_node* replaced = NULL;
+
+    if (node->right_ch == nil)
+    {
+        replaced = node->left_ch;
+        int ret = node_transplant(tree, node, replaced);
+        if (ret < 0)
+            return ret;
+    }
+    else if (node->left_ch == nil)
+    {
+        replaced = node->right_ch;
+        int ret = node_transplant(tree, node, replaced);
+        if (ret < 0)
+            return ret;
+    }
+    else
+    {
+        old = min_node(tree, node);
+        if (old == NULL)
+            return ERROR;
+        if (old->left_ch != nil)
+            return BAD_TREE_CONDITION;
+
+        old_orig_color =  old->color;
+        replaced = old->right_ch;
+        if (old->parent == node)
+            replaced->parent = old; // it heps us if replaced == nil
+        else
+        {
+            int ret = node_transplant(tree, old, old->right_ch);
+            if (ret < 0)
+                return ret;
+            old->right_ch = node->right_ch;
+            old->right_ch->parent = old;
+        }
+        int ret = node_transplant(tree, node, old);
+        if (ret < 0)
+            return ret;
+        old->left_ch = node->left_ch;
+        old->left_ch->parent = old;
+        old->color = node->color;
+    }
+
+    node_dtor(node);
+
+    (tree->num_nodes)--;
+
+    int ret = 0;
+    if (old_orig_color == Black)
+        ret = delete_fixup(tree, replaced);
+
+    return ret;
+}
+
+static int node_transplant(RB_tree* tree, RB_node* to, RB_node* who)
+{
+    if (tree == NULL || to == NULL || who == NULL)
+        return BAD_ARGS;
+
+    RB_node* nil = tree->nil;
+
+    if (to == nil)
+        return WRONG_OPERATION;
+
+    if (to->parent == nil)
+        tree->root = who;
+    else if (to == to->parent->left_ch)
+        to->parent->left_ch = who;
+    else
+        to->parent->right_ch = who;
+
+    who->parent = to->parent;
+
+    return 0;
+}
+
+RB_node* min_node(RB_tree* tree, RB_node* node)
+{
+    if (tree == NULL || node == NULL)
+        return BAD_ARGS;
+
+    size_t counter = tree->num_nodes + 1;
+    RB_node* nil = tree->nil;
+    RB_node* min = node;
+
+    for(; counter > 0; counter--)
+    {
+        if (min->left_ch == nil)
+            return min;
+        min = min->left_ch;
+    }
+
+    return NULL;
+}
+
+int node_dtor(RB_node* node)
+{
+    if (node == NULL)
+        return BAD_ARGS;
+
+    node->parent = NULL;
+    node->left_ch = NULL;
+    node->right_ch = NULL;
+    node->color = Poison_color;
+    node->key = Poison_key;
+
+    free(node);
+
+    return 0;
+}
+
+int tree_dtor(RB_tree* tree)
+{
+    if (tree == NULL)
+        return BAD_ARGS;
+
+    size_t counter = tree->num_nodes;
+
+    int ret = subtree_distruct(tree->root, tree->nil, &counter);
+    if (ret < 0)
+        return ret;
+
+    if (counter != 0)
+    {
+        tree->num_nodes = counter;
+        return counter;
+    }
+
+    ret = node_dtor(tree->nil);
+
+    tree->root = NULL;
+    tree->nil = 0;
+    tree->num_nodes = 0;
+
+    free(tree);
+
+    return ret;
+}
+
+static int subtree_distruct(RB_node* root, RB_node* nil, size_t* counter)
+{
+    if (root == NULL || nil == NULL || counter == NULL)
+        return BAD_ARGS;
+
+    int ret = 0;
+    if (root->left_ch != nil || root->left_ch != NULL)
+    {
+        ret = subtree_distruct(root->left_ch, nil, counter);
+        if (ret != 0)
+            return 0;
+    }
+    if (root->right_ch != nil || root->right_ch != NULL)
+    {
+        ret = subtree_distruct(root->right_ch, nil, counter);
+        if (ret != 0)
+            return 0;
+    }
+
+    if (*counter == 0)
+        return E_TOO_MUCH_ELEM;
+
+    (*counter)--;
+
+    ret = node_dtor(root);
+
+    return ret;
+}
+
+static int delete_fixup(RB_tree* tree, RB_node* extra_black)
+{
+    if (tree == NULL || bad_node == NULL)
+        return BAD_ARGS;
+
+    RB_node* root = tree->root;
+    while(extra_black->color == Black && extra_black != root)
+    {
+        if (extra_black->parent->left_ch == extra_black)
+        {
+            RB_node* bro = extra_black->parent->right_ch;
+            if (bro->color == Red)
+            {
+                extra_black->parent->color = Red;
+                bro->color = Black;
+
+                int ret = left_rotate(tree, extra_black->parent);
+                if (ret < 0)
+                    return ret;
+
+                bro = extra_black->parent->right_ch;
+            }
+            if (bro->left_ch->color == Black && bro->right_ch->color == Black)
+            {
+                bro->color = Red;
+                extra_black = extra_black->parent;
+            }
+            else
+            {
+                if (bro->right_ch->color == Black)
+                {
+                    bro->color = Red;
+                    bro->left_ch->color = Black;
+
+                    int ret = right_rotate(tree, bro);
+                    if (ret < 0)
+                        return ret;
+
+                    bro = extra_black->parent->right_ch;
+                }
+
+                bro->color = extra_black->parent->color;
+                extra_black->parent->color = Black;
+                bro->right_ch = Black;
+
+                int ret = left_rotate(tree, extra_black->parent);
+                if (ret < 0)
+                    return ret;
+
+                extra_black = root;
+            }
+        }
+        else
+        {
+            RB_node* bro = extra_black->parent->left_ch;
+
+            if (bro->color == Red)
+            {
+                bro->color = Black;
+                extra_black->parent->color = Red;
+
+                int ret = right_rotate(tree, extra_black->parent);
+                if (ret < 0)
+                    return ret;
+
+                bro = extra_black->parent->left_ch;
+            }
+            if (bro->left_ch->color == Black && bro->right_ch->color == Black)
+            {
+                bro->color = Red;
+                extra_black = extra_black->parent;
+            }
+            else
+            {
+                if (bro->left_ch->color == Black)
+                {
+                    bro->right_ch->color = Black;
+                    bro->color = Red;
+
+                    int ret = left_ch(tree, bro);
+                    if (ret < 0)
+                        return ret;
+
+                    bro = bro->right_ch;
+                }
+
+                bro->color = extra_black->parent->color;
+                extra_black->parent->color = Black;
+                bro->left_ch-color = Black;
+
+                int ret = right_rotate(tree, extra_black->parent);
+                if (ret < 0)
+                    return ret;
+
+                extra_black = root;
+            }
+        }
+    }
+
+    return 0;
+}
+
 int tree_dump(FILE* out, RB_tree* tree)
 {
     if (out == NULL || tree == NULL)
         return BAD_ARGS;
-
-    //printf("num nodes = %lu\n", tree->num_nodes);
 
     fprintf(out, "digraph dump\n{\n");
 

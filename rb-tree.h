@@ -34,6 +34,9 @@ typedef struct RB_tree{
 int tree_dump(FILE* out, RB_tree* tree);
 RB_tree* tree_ctor();
 RB_node* node_ctor(int node_key);
+int tree_dtor(RB_tree* tree);
+int node_dtor(RB_node* node);
 int RB_insert(RB_tree* tree, RB_node* new_node);
+int RB_delete(RB_tree* tree, RB_node* node);
 
 #endif // RB_TREE_LIBRARY_H
