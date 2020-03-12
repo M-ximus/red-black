@@ -14,6 +14,15 @@ enum Poisons{
     Poison_key
 };
 
+enum errors{
+    BAD_ARGS = -1
+    ERROR = -2
+    BAD_TREE_CONDITION = -3
+    WRONG_OPERATION = -4
+    E_TOO_MUCH_ELEM = -5
+    EMPTY_TREE = -6
+};
+
 typedef struct RB_node{
     struct RB_node* parent;
     struct RB_node* left_ch;
@@ -38,5 +47,9 @@ int tree_dtor(RB_tree* tree);
 int node_dtor(RB_node* node);
 int RB_insert(RB_tree* tree, RB_node* new_node);
 int RB_delete(RB_tree* tree, RB_node* node);
+int for_each(RB_tree* tree, int (*func)(RB_tree*, RB_node*, void*), void*);
+RB_node* min_node(RB_tree* tree, RB_node* root);
+RB_node* max_node(RB_tree* tree, RB_node* root);
+RB_node* RB_search(RB_tree* tree, int key);
 
 #endif // RB_TREE_LIBRARY_H

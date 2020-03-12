@@ -1,11 +1,5 @@
 #include "rb-tree.h"
 
-#define BAD_ARGS -1
-#define ERROR -2
-#define BAD_TREE_CONDITION -3
-#define WRONG_OPERATION -4
-#define E_TOO_MUCH_ELEM -5
-
 static RB_node* node_create();
 RB_tree* tree_ctor();
 RB_node* node_ctor(int node_key);
@@ -24,7 +18,7 @@ int tree_dtor(RB_tree* tree);
 
 static RB_node* node_create()
 {
-    struct RB_node* node = (RB_node*) malloc(sizeof(struct RB_node));
+    RB_node* node = (RB_node*) malloc(sizeof(RB_node));
     if (node == NULL)
         return NULL;
 
@@ -38,7 +32,7 @@ static RB_node* node_create()
     return node;
 }
 
-struct RB_tree* tree_ctor()
+RB_tree* tree_ctor()
 {
     RB_tree* tree = (RB_tree*) calloc(1, sizeof(RB_tree));
     if (tree == NULL)
@@ -330,7 +324,7 @@ RB_node* min_node(RB_tree* tree, RB_node* node)
     if (tree == NULL || node == NULL)
         return BAD_ARGS;
 
-    size_t counter = tree->num_nodes + 1;
+    size_t counter = tree->num_nodes;
     RB_node* nil = tree->nil;
     RB_node* min = node;
 
@@ -517,6 +511,90 @@ static int delete_fixup(RB_tree* tree, RB_node* extra_black)
     }
 
     return 0;
+}
+
+int for_each(RB_tree* tree, int (*func)(RB_tree*, RB_node*, void*), void* data)
+{
+    if (tree == NULL || func == NULL)
+        return BAD_ARGS;
+
+    int ret = call(tree->root, tree->nil, func, data);
+
+    return ret;
+}
+
+static int call(RB_node* node, RB_tree* tree, int (*func)(RB_tree*, RB_node*, void*), void* data)
+{
+    if (node == NULL || tree == NULL || func == NULL)
+        return ERROR;
+
+    RB_node* nil = tree->nil;
+    if (node == nil)
+        return EMPTY_TREE;
+
+    int ret = 0;
+
+    if (node->left_ch != nil)
+    {
+        ret = call(node->left_ch, tree, func, data);
+        if (ret < 0)
+            return ret;
+    }
+
+    ret = *func(tree, node, data);
+    if (ret < 0)
+        return ret;
+
+    if (node->right_ch != nil)
+    {
+        ret = call(node->right_ch, tree, func, data);
+        if (ret < 0)
+            return ret;
+    }
+
+    return 0;
+}
+
+RB_node* max_node(RB_tree* tree, RB_node* node)
+{
+    if (tree == NULL || node == NULL)
+        return BAD_ARGS;
+
+    size_t counter = tree->num_nodes;
+    RB_node* nil = tree->nil;
+    RB_node* max = tree->root;
+
+    for (; counter > 0; counter--)
+    {
+        if (max->right_ch == nil)
+            return max;
+        max = max->right_ch;
+    }
+
+    return NULL;
+}
+
+RB_node* RB_search(RB_tree* tree, int key)
+{
+    if (tree == NULL)
+        return BAD_ARGS;
+
+    RB_node* cur_node = tree->root;
+    size_t counter = tree->num_nodes;
+
+    for(; counter > 0; counter--)
+    {
+        if (cur_node == tree->nil)
+            return NULL;
+        if (key > cur_node->key)
+            cur_node = cur_node->right_ch;
+        else if (key < cur_node->key)
+            cur_node = curn_node->left_ch;
+        else
+            return cur_node;
+    }
+
+    return NULL;
 }
 
 int tree_dump(FILE* out, RB_tree* tree)
