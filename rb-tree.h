@@ -5,9 +5,9 @@
 #include "stdlib.h"
 
 enum {
-    Red,
-    Black,
-    Poison_color
+    Red = 1, // not 0 for simpler search via warning
+    Black = 2,
+    Poison_color = 3
 };
 
 enum Poisons{
@@ -15,11 +15,11 @@ enum Poisons{
 };
 
 enum errors{
-    BAD_ARGS = -1
-    ERROR = -2
-    BAD_TREE_CONDITION = -3
-    WRONG_OPERATION = -4
-    E_TOO_MUCH_ELEM = -5
+    BAD_ARGS = -1,
+    ERROR = -2,
+    BAD_TREE_CONDITION = -3,
+    WRONG_OPERATION = -4,
+    E_TOO_MUCH_ELEM = -5,
     EMPTY_TREE = -6
 };
 
@@ -47,7 +47,7 @@ int tree_dtor(RB_tree* tree);
 int node_dtor(RB_node* node);
 int RB_insert(RB_tree* tree, RB_node* new_node);
 int RB_delete(RB_tree* tree, RB_node* node);
-int for_each(RB_tree* tree, int (*func)(RB_tree*, RB_node*, void*), void*);
+int foreach(RB_tree* tree, int (*func)(RB_tree*, RB_node*, void*), void*);
 RB_node* min_node(RB_tree* tree, RB_node* root);
 RB_node* max_node(RB_tree* tree, RB_node* root);
 RB_node* RB_search(RB_tree* tree, int key);
