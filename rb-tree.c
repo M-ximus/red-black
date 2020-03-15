@@ -1,5 +1,13 @@
 #include "rb-tree.h"
 
+#define TEST
+
+#ifdef TEST
+#define Malloc(x) mymalloc(x)
+#else
+#define Malloc(x) malloc(x)
+#endif
+
 static RB_node* node_create();
 RB_tree* tree_ctor();
 RB_node* node_ctor(int node_key);
@@ -23,9 +31,24 @@ static int call(RB_node* node, RB_tree* tree,
     int (*func)(RB_tree*, RB_node*, void*), void* data, size_t* counter);
 
 
+static void* mymalloc(size_t size)
+{
+    static int num_iter = 0;
+    if (num_iter < 4)
+    {
+        num_iter++;
+        if (num_iter != 2)
+        {
+            errno = ENOMEM;
+            return NULL;
+        }
+    }
+    return malloc(size);
+ }
+
 static RB_node* node_create()
 {
-    RB_node* node = (RB_node*) malloc(sizeof(RB_node));
+    RB_node* node = (RB_node*) Malloc(sizeof(RB_node));
     if (node == NULL)
         return NULL;
 
@@ -41,7 +64,7 @@ static RB_node* node_create()
 
 RB_tree* tree_ctor()
 {
-    RB_tree* tree = (RB_tree*) calloc(1, sizeof(RB_tree));
+    RB_tree* tree = (RB_tree*) Malloc(sizeof(RB_tree));
     if (tree == NULL)
         return NULL;
 
@@ -105,7 +128,6 @@ int RB_insert(RB_tree* tree, RB_node* new_node)
     (tree->num_nodes)++;
 
     int ret_val = insert_fixup(tree, new_node);
-    //printf("ret_val = %d\n", ret_val);
 
     if (ret_val != 0)
         return BAD_TREE_CONDITION;
@@ -115,8 +137,9 @@ int RB_insert(RB_tree* tree, RB_node* new_node)
 
 static int insert_fixup(RB_tree* tree, RB_node* new_node)
 {
-    if (tree == NULL || new_node == NULL)
-        return BAD_ARGS;
+// Develop time checks
+//    if (tree == NULL || new_node == NULL)
+//        return BAD_ARGS;
 
     RB_node* cur_node = new_node;
     int ret_val = 0;
@@ -140,15 +163,17 @@ static int insert_fixup(RB_tree* tree, RB_node* new_node)
                 {
                     cur_node = cur_node->parent;
                     ret_val = left_rotate(tree, cur_node);
-                    if (ret_val != 0)
-                        return ret_val;
+                    // Develop time checks
+                    //if (ret_val != 0)
+                        //return ret_val;
                 }
                 cur_node->parent->color = Black;
                 cur_node->parent->parent->color = Red;
 
                 ret_val = right_rotate(tree, cur_node->parent->parent);
-                if (ret_val != 0)
-                    return ret_val;
+                // Develop time checks
+                //if (ret_val != 0)
+                    //return ret_val;
             }
         }
         else // right branch
@@ -168,14 +193,16 @@ static int insert_fixup(RB_tree* tree, RB_node* new_node)
                 {
                     cur_node = cur_node->parent;
                     ret_val = right_rotate(tree, cur_node);
-                    if (ret_val != 0)
-                        return ret_val;
+                    // Develop time checks
+                    //if (ret_val != 0)
+                        //return ret_val;
                 }
                 cur_node->parent->parent->color = Red;
                 cur_node->parent->color = Black;
                 ret_val = left_rotate(tree, cur_node->parent->parent);
-                if (ret_val != 0)
-                    return ret_val;
+                // Develop time checks
+                //if (ret_val != 0)
+                    //return ret_val;
             }
         }
     }
@@ -189,9 +216,6 @@ static int left_rotate(RB_tree* tree, RB_node* node)
 {
     if (tree == NULL || node == NULL)
         return BAD_ARGS;
-
-    if (node == tree->nil || node->right_ch == NULL)
-        return WRONG_OPERATION;
 
     RB_node* child = node->right_ch;
 
@@ -221,9 +245,6 @@ static int right_rotate(RB_tree* tree, RB_node* node)
     if (tree == NULL || node == NULL)
         return BAD_ARGS;
 
-    if (node == tree->nil || node->left_ch == NULL)
-        return WRONG_OPERATION;
-
     struct RB_node* child = node->left_ch;
 
     child->parent = node->parent;
@@ -241,7 +262,7 @@ static int right_rotate(RB_tree* tree, RB_node* node)
 
     if (node->left_ch != tree->nil)
         node->left_ch->parent = node;
-    
+
     child->right_ch = node;
 
     return 0;
@@ -276,8 +297,9 @@ int RB_delete(RB_tree* tree, RB_node* node)
         old = min_node(tree, node->right_ch);
         if (old == NULL)
             return ERROR;
-        if (old->left_ch != nil)
-            return BAD_TREE_CONDITION;
+        //Develop time checks
+        //if (old->left_ch != nil)
+            //return BAD_TREE_CONDITION;
 
         old_orig_color =  old->color;
         replaced = old->right_ch;
@@ -291,9 +313,7 @@ int RB_delete(RB_tree* tree, RB_node* node)
             old->right_ch = node->right_ch;
             old->right_ch->parent = old;
         }
-        int ret = node_transplant(tree, node, old);
-        if (ret < 0)
-            return ret;
+        node_transplant(tree, node, old);
         old->left_ch = node->left_ch;
         old->left_ch->parent = old;
         old->color = node->color;
@@ -316,9 +336,9 @@ static int node_transplant(RB_tree* tree, RB_node* to, RB_node* who)
         return BAD_ARGS;
 
     RB_node* nil = tree->nil;
-
-    if (to == nil)
-        return WRONG_OPERATION;
+// Develop time checks
+//    if (to == nil)
+//        return WRONG_OPERATION;
 
     if (to->parent == nil)
         tree->root = who;
@@ -425,8 +445,9 @@ static int delete_fixup(RB_tree* tree, RB_node* extra_black)
                 bro->color = Black;
 
                 int ret = left_rotate(tree, extra_black->parent);
-                if (ret < 0)
-                    return ret;
+                //Develop time checks
+                //if (ret < 0)
+                    //return ret;
 
                 bro = extra_black->parent->right_ch;
             }
@@ -443,8 +464,9 @@ static int delete_fixup(RB_tree* tree, RB_node* extra_black)
                     bro->left_ch->color = Black;
 
                     int ret = right_rotate(tree, bro);
-                    if (ret < 0)
-                        return ret;
+                    //Develop time checks
+                    //if (ret < 0)
+                        //return ret;
 
                     bro = extra_black->parent->right_ch;
                 }
@@ -454,8 +476,9 @@ static int delete_fixup(RB_tree* tree, RB_node* extra_black)
                 bro->right_ch->color = Black;
 
                 int ret = left_rotate(tree, extra_black->parent);
-                if (ret < 0)
-                    return ret;
+                //Develop time checks
+                //if (ret < 0)
+                    //return ret;
 
                 extra_black = root;
             }
@@ -470,8 +493,9 @@ static int delete_fixup(RB_tree* tree, RB_node* extra_black)
                 extra_black->parent->color = Red;
 
                 int ret = right_rotate(tree, extra_black->parent);
-                if (ret < 0)
-                    return ret;
+                //Develop time checks
+                //if (ret < 0)
+                   //return ret
 
                 bro = extra_black->parent->left_ch;
             }
@@ -488,8 +512,9 @@ static int delete_fixup(RB_tree* tree, RB_node* extra_black)
                     bro->color = Red;
 
                     int ret = left_rotate(tree, bro);
-                    if (ret < 0)
-                        return ret;
+                    //Develop time checks
+                    //if (ret < 0)
+                        //return ret;
 
                     bro = extra_black->parent->left_ch;
                 }
@@ -499,8 +524,9 @@ static int delete_fixup(RB_tree* tree, RB_node* extra_black)
                 bro->left_ch->color = Black;
 
                 int ret = right_rotate(tree, extra_black->parent);
-                if (ret < 0)
-                    return ret;
+                //Develop time checks
+                //if (ret < 0)
+                     //return ret;
 
                 extra_black = root;
             }

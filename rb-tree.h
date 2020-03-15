@@ -3,6 +3,7 @@
 
 #include "stdio.h"
 #include "stdlib.h"
+#include "errno.h"
 
 enum {
     Red = 1, // not 0 for simpler search via warning

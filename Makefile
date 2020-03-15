@@ -1,4 +1,5 @@
 CFLAGS = -g -O0 -MD
+DEBUG-FLAGS = -D TEST
 GCOV_FLAGS = -fprofile-arcs -ftest-coverage
 DOT_FLAGS = -Tpng
 
@@ -8,7 +9,7 @@ unittest.out: unittests.o rb-tree.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(DEBUG_FLAGS) -c -o $@ $<
 
 cov_tree: rb-tree.gcno rb-tree.gcda
 	gcov rb-tree.c
