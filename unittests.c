@@ -687,7 +687,7 @@ void Testcase_foreach()
     RB_node* saved_root = tree->root;
     tree->root = NULL;
     int ret_bad_node_foreach = foreach(tree, sum, &tree_sum);
-    UNITTEST(ret_bad_node_foreach, ==, ERROR);
+    UNITTEST(ret_bad_node_foreach, ==, BAD_ARGS);
     tree->root = saved_root;
 ////////////////////////////////////////////////////////////////////////////////
     int ret_dtor = tree_dtor(tree);
