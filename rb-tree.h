@@ -33,7 +33,7 @@ typedef struct RB_node{
 } RB_node;
 
 
-// TODO: make cache friendly by reserving memory for nil in the structure
+// TODO: make cache friendly by reserving memory for nil in the structur
 
 typedef struct RB_tree{
     struct RB_node* nil;

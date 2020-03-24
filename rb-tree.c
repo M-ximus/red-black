@@ -1,13 +1,13 @@
 #include "rb-tree.h"
 
 #ifdef DEVCHECKS
-#define CHECK_RET(x) if ((x) < 0) return x;
+#define CHECK_RET(x) do {if ((x) < 0) return (x);} while(0)
 #else
 #define CHECK_RET(x)
 #endif
 
 #ifdef  DEVCHECKS
-#define NOT_NULL(x) assert((x) != NULL);
+#define NOT_NULL(x) do {assert((x) != NULL);} while(0)
 #else
 #define NOT_NULL(x)
 #endif
@@ -19,26 +19,15 @@
 #endif
 
 static RB_node* node_create();
-RB_tree* tree_ctor();
-RB_node* node_ctor(int node_key);
-int RB_insert(RB_tree* tree, RB_node* new_node);
 static int insert_fixup(RB_tree* tree, RB_node* new_node);
-static int left_rotate(RB_tree* tree, RB_node* node);
-static int right_rotate(RB_tree* tree, RB_node* node);
-int tree_dump(FILE* out, RB_tree* tree);
+static void left_rotate(RB_tree* tree, RB_node* node);
+static void right_rotate(RB_tree* tree, RB_node* node);
 static int node_dump(FILE* out, RB_node* node, RB_tree* tree, size_t* counter);
-int RB_delete(RB_tree* tree, RB_node* node);
 static int delete_fixup();
-RB_node* min_node(RB_tree* tree, RB_node* root);
-RB_node* max_node(RB_tree* tree, RB_node* root);
-RB_node* RB_search(RB_tree* tree, int key);
-int node_dtor(RB_node* node);
-int tree_dtor(RB_tree* tree);
-int for_each(RB_tree* tree, int (*func)(RB_tree*, RB_node*, void*), void*);
 static int node_transplant(RB_tree* tree, RB_node* to, RB_node* who);
 static int subtree_distruct(RB_node* root, RB_node* nil, size_t* counter);
 static int call(RB_node* node, RB_tree* tree,
-    int (*func)(RB_tree*, RB_node*, void*), void* data, size_t* counter);
+    int (*func)(RB_tree*, RB_node*, void*), void* data, size_t counter);
 
 
 static void* mymalloc(size_t size)
@@ -172,16 +161,12 @@ static int insert_fixup(RB_tree* tree, RB_node* new_node)
                 if(cur_node->parent->right_ch == cur_node)
                 {
                     cur_node = cur_node->parent;
-                    ret_val = left_rotate(tree, cur_node);
-                    // Develop time checks
-                    CHECK_RET(ret_val);
+                    left_rotate(tree, cur_node);
                 }
                 cur_node->parent->color = Black;
                 cur_node->parent->parent->color = Red;
 
-                ret_val = right_rotate(tree, cur_node->parent->parent);
-                // Develop time checks
-                CHECK_RET(ret_val);
+                right_rotate(tree, cur_node->parent->parent);
             }
         }
         else // right branch
@@ -200,15 +185,11 @@ static int insert_fixup(RB_tree* tree, RB_node* new_node)
                 if (cur_node->parent->left_ch == cur_node)
                 {
                     cur_node = cur_node->parent;
-                    ret_val = right_rotate(tree, cur_node);
-                    // Develop time checks
-                    CHECK_RET(ret_val);
+                    right_rotate(tree, cur_node);
                 }
                 cur_node->parent->parent->color = Red;
                 cur_node->parent->color = Black;
-                ret_val = left_rotate(tree, cur_node->parent->parent);
-                // Develop time checks
-                CHECK_RET(ret_val);
+                left_rotate(tree, cur_node->parent->parent);
             }
         }
     }
@@ -218,11 +199,8 @@ static int insert_fixup(RB_tree* tree, RB_node* new_node)
     return 0;
 }
 
-static int left_rotate(RB_tree* tree, RB_node* node)
+static void left_rotate(RB_tree* tree, RB_node* node)
 {
-    if (tree == NULL || node == NULL)
-        return BAD_ARGS;
-
     RB_node* child = node->right_ch;
 
     child->parent = node->parent;
@@ -243,15 +221,12 @@ static int left_rotate(RB_tree* tree, RB_node* node)
 
     child->left_ch = node;
 
-    return 0;
+    return;
 }
 
-static int right_rotate(RB_tree* tree, RB_node* node)
+static void right_rotate(RB_tree* tree, RB_node* node)
 {
-    if (tree == NULL || node == NULL)
-        return BAD_ARGS;
-
-    struct RB_node* child = node->left_ch;
+    RB_node* child = node->left_ch;
 
     child->parent = node->parent;
 
@@ -271,7 +246,7 @@ static int right_rotate(RB_tree* tree, RB_node* node)
 
     child->right_ch = node;
 
-    return 0;
+    return;
 }
 
 int RB_delete(RB_tree* tree, RB_node* node)
@@ -450,9 +425,7 @@ static int delete_fixup(RB_tree* tree, RB_node* extra_black)
                 extra_black->parent->color = Red;
                 bro->color = Black;
 
-                int ret = left_rotate(tree, extra_black->parent);
-                //Develop time checks
-                CHECK_RET(ret);
+                left_rotate(tree, extra_black->parent);
 
                 bro = extra_black->parent->right_ch;
             }
@@ -468,9 +441,7 @@ static int delete_fixup(RB_tree* tree, RB_node* extra_black)
                     bro->color = Red;
                     bro->left_ch->color = Black;
 
-                    int ret = right_rotate(tree, bro);
-                    //Develop time checks
-                    CHECK_RET(ret);
+                    right_rotate(tree, bro);
 
                     bro = extra_black->parent->right_ch;
                 }
@@ -479,9 +450,7 @@ static int delete_fixup(RB_tree* tree, RB_node* extra_black)
                 extra_black->parent->color = Black;
                 bro->right_ch->color = Black;
 
-                int ret = left_rotate(tree, extra_black->parent);
-                //Develop time checks
-                CHECK_RET(ret);
+                left_rotate(tree, extra_black->parent);
 
                 extra_black = root;
             }
@@ -495,9 +464,7 @@ static int delete_fixup(RB_tree* tree, RB_node* extra_black)
                 bro->color = Black;
                 extra_black->parent->color = Red;
 
-                int ret = right_rotate(tree, extra_black->parent);
-                //Develop time checks
-                CHECK_RET(ret);
+                right_rotate(tree, extra_black->parent);
 
                 bro = extra_black->parent->left_ch;
             }
@@ -513,9 +480,7 @@ static int delete_fixup(RB_tree* tree, RB_node* extra_black)
                     bro->right_ch->color = Black;
                     bro->color = Red;
 
-                    int ret = left_rotate(tree, bro);
-                    //Develop time checks
-                    CHECK_RET(ret);
+                    left_rotate(tree, bro);
 
                     bro = extra_black->parent->left_ch;
                 }
@@ -524,9 +489,7 @@ static int delete_fixup(RB_tree* tree, RB_node* extra_black)
                 extra_black->parent->color = Black;
                 bro->left_ch->color = Black;
 
-                int ret = right_rotate(tree, extra_black->parent);
-                //Develop time checks
-                CHECK_RET(ret);
+                right_rotate(tree, extra_black->parent);
 
                 extra_black = root;
             }
@@ -542,17 +505,15 @@ int foreach(RB_tree* tree, int (*func)(RB_tree*, RB_node*, void*), void* data)
     if (tree == NULL || func == NULL)
         return BAD_ARGS;
 
-    size_t counter = tree->num_nodes;
-
-    int ret = call(tree->root, tree, func, data, &counter);
+    int ret = call(tree->root, tree, func, data, tree->num_nodes);
 
     return ret;
 }
 
 static int call(RB_node* node, RB_tree* tree,
-    int (*func)(RB_tree*, RB_node*, void*), void* data, size_t* counter)
+    int (*func)(RB_tree*, RB_node*, void*), void* data, size_t counter)
 {
-    if (node == NULL || tree == NULL || func == NULL || counter == NULL)
+    if (node == NULL || tree == NULL || func == NULL)
         return BAD_ARGS;
 
     RB_node* nil = tree->nil;
@@ -561,16 +522,15 @@ static int call(RB_node* node, RB_tree* tree,
 
     int ret = 0;
 
+    if (counter <= 0)
+        return E_TOO_MUCH_ELEM;
+
     if (node->left_ch != nil)
     {
-        ret = call(node->left_ch, tree, func, data, counter);
+        ret = call(node->left_ch, tree, func, data, counter - 1);
         if (ret < 0)
             return ret;
     }
-
-    if (*counter == 0)
-        return E_TOO_MUCH_ELEM;
-    (*counter)--;
 
     ret = func(tree, node, data);
     if (ret < 0)
@@ -578,7 +538,7 @@ static int call(RB_node* node, RB_tree* tree,
 
     if (node->right_ch != nil)
     {
-        ret = call(node->right_ch, tree, func, data, counter);
+        ret = call(node->right_ch, tree, func, data, counter - 1);
         if (ret < 0)
             return ret;
     }
